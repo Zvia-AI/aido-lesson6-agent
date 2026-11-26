@@ -17,57 +17,51 @@
 ## 2. System Diagram
 
 ```mermaid
-flowchart LR
-    subgraph IN["1. Input"]
-        VEN["Vendors<br/>PDF / Word / photos"]
-        HO1["Homeowner<br/>uploads quotes"]
-        DRV[("Google Drive<br/>Renovation_Quotes_Inbox")]
-        VEN --> HO1 --> DRV
-    end
-
-    subgraph TRG["2. Trigger"]
-        SCH["Scheduled deployment<br/>daily 20:00"]
+flowchart TB
+    subgraph IN["1. Input and trigger"]
+        DRV[("Google Drive inbox<br/>quotes uploaded by homeowner")]
+        SCH["Scheduled run<br/>daily 20:00"]
         MAN["Manual run<br/>from Console"]
     end
 
-    subgraph AGT["3. Agent - Claude Managed Agents"]
-        AG["renovation-budget-manager<br/>claude-sonnet-5-5 · medium effort"]
-        SKL["Skill<br/>renovation-domain rules"]
-        MEM[("Memory Store<br/>processed_files<br/>vendor_notes<br/>item_aliases")]
+    subgraph AGT["2. Agent - Claude Managed Agents"]
+        SKL["Skill<br/>domain rules"]
+        AG["renovation-budget-manager<br/>Sonnet · medium effort"]
+        VLT["Vault<br/>Google OAuth"]
+        MEM[("Memory Store<br/>processed files · vendor notes<br/>item aliases")]
         SBX["Sandbox<br/>Python math · file reading"]
-        VLT["Vault<br/>Google OAuth credentials"]
     end
 
-    subgraph SOR["4. System of Record - Google Sheet"]
+    subgraph SOR["3. System of Record - Google Sheet"]
+        SET["Settings<br/>VAT rate · target budget"]
         MB["Master_Budget"]
         DL["Daily_Log"]
-        SET["Settings<br/>VAT rate · target budget"]
         DSH["Dashboard<br/>formulas only"]
     end
 
-    subgraph OUT["5. Output"]
-        DRF["Gmail drafts<br/>to vendors"]
-        APS["Apps Script<br/>daily 21:00"]
-        EML["Summary email<br/>to homeowner"]
-        HO2["Homeowner<br/>reviews and decides"]
+    subgraph OUT["4. Output"]
+        DRF["Gmail drafts to vendors<br/>never sent automatically"]
+        APS["Apps Script 21:00<br/>emails daily summary"]
+        HO["Homeowner<br/>reviews and decides"]
     end
 
+    DRV -->|"read-only"| AG
     SCH --> AG
     MAN --> AG
-    DRV -->|"read-only"| AG
     SKL --> AG
+    VLT -.->|"credentials"| AG
     AG <--> MEM
     AG <--> SBX
-    VLT -.->|"credentials"| AG
     SET -->|"VAT rate"| AG
     AG -->|"write values"| MB
     AG -->|"append run row"| DL
     AG -->|"create draft only"| DRF
     MB --> DSH
-    DL --> APS --> EML --> HO2
-    DSH --> HO2
-    DRF --> HO2
-    HO2 -->|"chooses 1 / 2 / 3"| MB
+    DL --> APS
+    APS --> HO
+    DSH --> HO
+    DRF --> HO
+    HO -->|"chooses 1 / 2 / 3"| MB
 ```
 
 ---
